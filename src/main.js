@@ -44,8 +44,10 @@ function ajusteCanvas() {
 ajusteCanvas();
 window.addEventListener("resize", ajusteCanvas);
 
-// Iluminación: luz ambiental, luz frontal, luz principal, luz de relleno y luz para el modelo
-escena.add(new THREE.AmbientLight("#ffffff", 0.6)); 
+// Iluminación: 
+// luz ambiental, luz frontal, luz principal, luz de relleno y luz para el modelo
+
+escena.add(new THREE.AmbientLight("#ffffff", 0.8)); 
 
 // Luz frontal 
 const luzFrontal = new THREE.DirectionalLight("#ffffff", 0.8);
