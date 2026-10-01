@@ -9,6 +9,11 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import gsap from 'gsap'; 
+//stats para los fps 
+import Stats from 'three/examples/jsm/libs/stats.module.js';
+
+const stats = new Stats();
+document.body.appendChild(stats.dom);
 
 // escena, cámara 
 const canvas = document.getElementById("lienzo");
@@ -344,6 +349,9 @@ renderizador.setAnimationLoop(() => {
         }
     }
     
+    //fps stats
+    stats.update();
+
     // Actualización de controles y renderizado de la escena
     controls.update(); 
     renderizador.render(escena, camara);
