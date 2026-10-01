@@ -1,7 +1,5 @@
-
 // ESCAPARATE TANAMACHI JORGG :)
 // RENDER WEB
-
 
 //import
 import './style.css';
@@ -18,7 +16,7 @@ document.body.appendChild(stats.dom);
 // escena, cámara 
 const canvas = document.getElementById("lienzo");
 const escena = new THREE.Scene();
-escena.background = new THREE.Color("#1a1513"); 
+escena.background = new THREE.Color("#1f1b1a"); 
 
 const camara = new THREE.PerspectiveCamera(40, 1, 0.1, 100); // FOV, aspect ratio, near, far
 camara.position.set(15, 8, 25);
@@ -27,7 +25,6 @@ camara.lookAt(new THREE.Vector3(0, 0, 0));
 // Renderizador
 const renderizador = new THREE.WebGLRenderer({ canvas: canvas, antialias: true }); 
 renderizador.shadowMap.enabled = true;
-
 
 // controles para rotar la cámara 
 const controls = new OrbitControls(camara, canvas);
@@ -77,16 +74,20 @@ luzModelo.target.position.set(-2.5, -2.5, -1);
 escena.add(luzModelo);
 escena.add(luzModelo.target);
 
-// texturasss para el marco de madera, botones y el logo 
+// texturasss para el marco de madera, botones, logo y nuevo marco
 const textureLoader = new THREE.TextureLoader();
 const texturaMadera = textureLoader.load('/texturas/madera.jpg');
 const texturaMatcap = textureLoader.load('/texturas/matcap.png');
 const texturaCromo = textureLoader.load('/texturas/cromo.jpg');
+const texturaMarco = textureLoader.load('/texturas/marco.jpg'); 
 
-// ormato de color correcto
+// formato de color correcto
 texturaMadera.colorSpace = THREE.SRGBColorSpace; 
 texturaMatcap.colorSpace = THREE.SRGBColorSpace;
 texturaCromo.colorSpace = THREE.SRGBColorSpace;
+texturaMarco.colorSpace = THREE.SRGBColorSpace; 
+texturaMarco.wrapS = texturaMarco.wrapT = THREE.RepeatWrapping;
+texturaMarco.repeat.set(0.1, 0.1);
 
 // Cajaja principal y las paredes "TELEVISIÓN"
 const grupoTV = new THREE.Group();
@@ -129,7 +130,7 @@ paredDer.rotation.y = -Math.PI / 2;
 paredDer.position.set(10, 4.5, -2.5);
 grupoTV.add(paredDer);
 
-// Marco frontal de madera con un hueco en medio
+// Marco frontal con un hueco en medio
 const formaMarco = new THREE.Shape();
 formaMarco.moveTo(-18, -6).lineTo(18, -6).lineTo(18, 15).lineTo(-18, 15).lineTo(-18, -6);
 
@@ -138,10 +139,10 @@ const huecoPantalla = new THREE.Path();
 huecoPantalla.moveTo(-15, -3).lineTo(10, -3).lineTo(10, 12).lineTo(-15, 12).lineTo(-15, -3);
 formaMarco.holes.push(huecoPantalla);
 
-//textura madera 
+//textura marco usando MeshBasicMaterial para mostrar la imagen exacta sin interactuar con luces
 const marcoTV = new THREE.Mesh(
   new THREE.ExtrudeGeometry(formaMarco, { depth: 1, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.2, bevelThickness: 0.2 }), 
-  new THREE.MeshStandardMaterial({ map: texturaMadera, color: "#4a2c11", roughness: 0.9 })
+  new THREE.MeshBasicMaterial({ map: texturaMarco }) // <--- MeshBasicMaterial ignora sombras/luces
 );
 //posición del marco y sombra
 marcoTV.position.set(0, 0, 5);
@@ -339,13 +340,19 @@ renderizador.setAnimationLoop(() => {
             
             // luz de "hover" y cambio de cursor
             objetoHovereado = intersecciones[0].object;
-            objetoHovereado.material.emissive.setHex(0x444444); 
+            
+            // Como cambiamos algunos materiales, checamos si tienen propiedad emissive antes de prenderla
+            if(objetoHovereado.material.emissive) {
+                objetoHovereado.material.emissive.setHex(0x444444); 
+            }
             document.body.style.cursor = 'pointer'; 
         }
     } else {
         // Si no hay intersecciones, se apaga la luz de "hover" y cambia el cursor a default
         if (objetoHovereado) {
-            objetoHovereado.material.emissive.setHex(0x000000);
+            if(objetoHovereado.material.emissive) {
+                objetoHovereado.material.emissive.setHex(0x000000);
+            }
             objetoHovereado = null;
             document.body.style.cursor = 'default';
         }
