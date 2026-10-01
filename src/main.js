@@ -150,7 +150,7 @@ marcoTV.castShadow = true;
 grupoTV.add(marcoTV);
 
 // Panel lateral rectangular lado derecho
-const panelControl = new THREE.Mesh(new THREE.BoxGeometry(5, 15, 1.1), new THREE.MeshStandardMaterial({ color: "#3f4ea7", roughness: 0.5 }));
+const panelControl = new THREE.Mesh(new THREE.BoxGeometry(5, 15, 1.1), new THREE.MeshStandardMaterial({ color: "#8f2981", roughness: 0.5 }));
 panelControl.position.set(14, 4.5, 6.2); 
 grupoTV.add(panelControl);
 
@@ -166,7 +166,7 @@ for(let i = 0; i < 3; i++) {
 
 // botones inferiores, parte inferior del marco
 const geometriaBoton = new THREE.CylinderGeometry(0.6, 0.6, 0.4, 32);
-const materialBotonesRetro = new THREE.MeshPhongMaterial({ color: "#a8da20", shininess: 100 });
+const materialBotonesRetro = new THREE.MeshPhongMaterial({ color: "#0f70df", shininess: 100 });
 const objetosInteractivos = []; 
 
 //5 botones
