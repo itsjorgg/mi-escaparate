@@ -1,367 +1,194 @@
-// ESCAPARATE TANAMACHI JORGG :)
+// POSTER INTERACTIVO JORGG :)
 // RENDER WEB
 
-//import
-import './style.css';
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import gsap from 'gsap'; 
-//stats para los fps 
-import Stats from 'three/examples/jsm/libs/stats.module.js';
+import gsap from 'gsap';
 
-const stats = new Stats();
-document.body.appendChild(stats.dom);
+// 1. CONFIGURACIÓN DE ESCENA, CÁMARA
+const scene = new THREE.Scene();
 
-// escena, cámara 
-const canvas = document.getElementById("lienzo");
-const escena = new THREE.Scene();
-escena.background = new THREE.Color("#1f1b1a"); 
+const baseFov = 45; 
+const camera = new THREE.PerspectiveCamera(baseFov, window.innerWidth / window.innerHeight, 0.1, 1000);
+let targetZoom = 30; 
+camera.position.z = targetZoom;
 
-const camara = new THREE.PerspectiveCamera(40, 1, 0.1, 100); // FOV, aspect ratio, near, far
-camara.position.set(15, 8, 25);
-camara.lookAt(new THREE.Vector3(0, 0, 0)); 
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); 
+document.getElementById('app').appendChild(renderer.domElement);
 
-// Renderizador
-const renderizador = new THREE.WebGLRenderer({ canvas: canvas, antialias: true }); 
-renderizador.shadowMap.enabled = true;
-
-// controles para rotar la cámara 
-const controls = new OrbitControls(camara, canvas);
-controls.enableDamping = true;
-controls.dampingFactor = 0.05;
-
-// ajustar el tamaño del canvas y la cámara cuando se cambia el tamaño de la ventana
-function ajusteCanvas() {
-  renderizador.setSize(window.innerWidth, window.innerHeight, false); 
-  renderizador.setPixelRatio(Math.min(2, window.devicePixelRatio));
-  camara.aspect = window.innerWidth / window.innerHeight;
-  camara.updateProjectionMatrix(); 
-}
-ajusteCanvas();
-window.addEventListener("resize", ajusteCanvas);
-
-// Iluminación: 
-// luz ambiental, luz frontal, luz principal, luz de relleno y luz para el modelo
-
-escena.add(new THREE.AmbientLight("#ffffff", 0.8)); 
-
-// Luz frontal 
-const luzFrontal = new THREE.DirectionalLight("#ffffff", 0.8);
-luzFrontal.position.set(0, 10, 20); 
-escena.add(luzFrontal);
-
-// Luz principal (SpotLight) 
-const luzPrincipal = new THREE.SpotLight(0xffeedd, 350);
-luzPrincipal.position.set(-2, 11, -2); 
-luzPrincipal.angle = Math.PI / 3;
-luzPrincipal.penumbra = 0.5;
-luzPrincipal.castShadow = true;
-escena.add(luzPrincipal);
-
-// Luz de relleno
-const luzRelleno = new THREE.PointLight(0xf2a516, 150, 30); 
-luzRelleno.position.set(-5, 2, 2);
-escena.add(luzRelleno);
-
-//Luz para modelo/maniquin al centro
-const luzModelo = new THREE.SpotLight(0xffffff, 400); 
-luzModelo.position.set(-2.5, 10, 4); 
-luzModelo.angle = Math.PI / 8; 
-luzModelo.penumbra = 0.8; 
-luzModelo.castShadow = true;
-luzModelo.target.position.set(-2.5, -2.5, -1);
-escena.add(luzModelo);
-escena.add(luzModelo.target);
-
-// texturasss para el marco de madera, botones, logo y nuevo marco
+// 2. TEXTURAS
 const textureLoader = new THREE.TextureLoader();
-const texturaMadera = textureLoader.load('/texturas/madera.jpg');
-const texturaMatcap = textureLoader.load('/texturas/matcap.png');
-const texturaCromo = textureLoader.load('/texturas/cromo.jpg');
-const texturaMarco = textureLoader.load('/texturas/marco.jpg'); 
 
-// formato de color correcto
-texturaMadera.colorSpace = THREE.SRGBColorSpace; 
-texturaMatcap.colorSpace = THREE.SRGBColorSpace;
-texturaCromo.colorSpace = THREE.SRGBColorSpace;
-texturaMarco.colorSpace = THREE.SRGBColorSpace; 
-texturaMarco.wrapS = texturaMarco.wrapT = THREE.RepeatWrapping;
-texturaMarco.repeat.set(0.1, 0.1);
+function createLayer(imagePath, zDepth, scaleZ = 1) {
+    const texture = textureLoader.load(imagePath);
+    texture.minFilter = THREE.LinearFilter;
 
-// Cajaja principal y las paredes "TELEVISIÓN"
-const grupoTV = new THREE.Group();
-escena.add(grupoTV);
-
-// Materiales para las paredes y el interior
-const materialInterior = new THREE.MeshStandardMaterial({ color: "#111111", roughness: 1 });
-const materialFondo = new THREE.MeshBasicMaterial({ color: "#0a0a0a" }); 
-
-// Pared del fondo
-const paredFondo = new THREE.Mesh(new THREE.PlaneGeometry(25, 15), materialFondo);
-paredFondo.position.set(-2.5, 4.5, -10);
-grupoTV.add(paredFondo);
-
-// Techo
-const paredTecho = new THREE.Mesh(new THREE.PlaneGeometry(25, 15), materialInterior);
-paredTecho.rotation.x = Math.PI / 2; 
-paredTecho.position.set(-2.5, 12, -2.5);
-grupoTV.add(paredTecho);
-
-// Piso de madera con textura de madera
-const texturaMaderaPiso = texturaMadera.clone();
-texturaMaderaPiso.wrapS = texturaMaderaPiso.wrapT = THREE.RepeatWrapping;
-texturaMaderaPiso.repeat.set(4, 3); 
-
-const paredPiso = new THREE.Mesh(new THREE.PlaneGeometry(25, 15), new THREE.MeshStandardMaterial({ map: texturaMaderaPiso, roughness: 0.8, color: "#aaaaaa" }));
-paredPiso.rotation.x = -Math.PI / 2; 
-paredPiso.position.set(-2.5, -3, -2.5);
-paredPiso.receiveShadow = true; 
-grupoTV.add(paredPiso);
-
-// Paredes laterales
-const paredIzq = new THREE.Mesh(new THREE.PlaneGeometry(15, 15), materialInterior);
-paredIzq.rotation.y = Math.PI / 2; 
-paredIzq.position.set(-15, 4.5, -2.5);
-grupoTV.add(paredIzq);
-
-const paredDer = new THREE.Mesh(new THREE.PlaneGeometry(15, 15), materialInterior);
-paredDer.rotation.y = -Math.PI / 2;
-paredDer.position.set(10, 4.5, -2.5);
-grupoTV.add(paredDer);
-
-// Marco frontal con un hueco en medio
-const formaMarco = new THREE.Shape();
-formaMarco.moveTo(-18, -6).lineTo(18, -6).lineTo(18, 15).lineTo(-18, 15).lineTo(-18, -6);
-
-// Hueco para la pantalla
-const huecoPantalla = new THREE.Path();
-huecoPantalla.moveTo(-15, -3).lineTo(10, -3).lineTo(10, 12).lineTo(-15, 12).lineTo(-15, -3);
-formaMarco.holes.push(huecoPantalla);
-
-//textura marco usando MeshBasicMaterial para mostrar la imagen exacta sin interactuar con luces
-const marcoTV = new THREE.Mesh(
-  new THREE.ExtrudeGeometry(formaMarco, { depth: 1, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.2, bevelThickness: 0.2 }), 
-  new THREE.MeshBasicMaterial({ map: texturaMarco }) // <--- MeshBasicMaterial ignora sombras/luces
-);
-//posición del marco y sombra
-marcoTV.position.set(0, 0, 5);
-marcoTV.castShadow = true;
-grupoTV.add(marcoTV);
-
-// Panel lateral rectangular lado derecho
-const panelControl = new THREE.Mesh(new THREE.BoxGeometry(5, 15, 1.1), new THREE.MeshStandardMaterial({ color: "#8f2981", roughness: 0.5 }));
-panelControl.position.set(14, 4.5, 6.2); 
-grupoTV.add(panelControl);
-
-//Botones redondos, material matcap como metal brillante.
-const materialPerillas = new THREE.MeshMatcapMaterial({ matcap: texturaMatcap, color: "#ffffff" });
-// botones en el panel
-for(let i = 0; i < 3; i++) {
-  const perilla = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.5, 32), materialPerillas);
-  perilla.rotation.x = Math.PI / 2;
-  perilla.position.set(14, 9 - (i * 3.5), 6.8); 
-  grupoTV.add(perilla);
-}
-
-// botones inferiores, parte inferior del marco
-const geometriaBoton = new THREE.CylinderGeometry(0.6, 0.6, 0.4, 32);
-const materialBotonesRetro = new THREE.MeshPhongMaterial({ color: "#0f70df", shininess: 100 });
-const objetosInteractivos = []; 
-
-//5 botones
-for(let i = 0; i < 5; i++) {
-    // material
-    const boton = new THREE.Mesh(geometriaBoton, materialBotonesRetro.clone()); 
-    boton.rotation.x = Math.PI / 2;
-    boton.position.set(8 - (i * 2.5), -4.5, 6.4); 
-    grupoTV.add(boton);
-    objetosInteractivos.push(boton); 
-}
-
-// rayas de colores del fondo, color y escala diferente
-const datosLineas = [
-    { color: "#d93829", escala: 1 }, { color: "#f2e3d5", escala: 0.9 }, { color: "#f2a516", escala: 0.8 },
-    { color: "#2b5f8c", escala: 0.9 }, { color: "#f2e3d5", escala: 1 }, { color: "#597332", escala: 0.8 },
-    { color: "#f2e3d5", escala: 0.9 }, { color: "#d93829", escala: 1 }, { color: "#f2a516", escala: 0.9 }
-];
-//ancho de las rayas
-const anchoRaya = 25 / datosLineas.length;
-
-datosLineas.forEach((dato, i) => {
-  //pilar para cada raya
-    const pilar = new THREE.Mesh(
-      new THREE.BoxGeometry(anchoRaya - 0.3, 15 * dato.escala, 0.5), 
-      new THREE.MeshStandardMaterial({ color: dato.color, roughness: 0.7 })
-    );
-    pilar.position.set(-15 + (i * anchoRaya) + (anchoRaya / 2), 4.5, -9.75); 
-    pilar.castShadow = true;
-    escena.add(pilar);
-});
-
-// importación de modelos 3d
-const gltfLoader = new GLTFLoader();
-let modeloProtagonista = null; 
-let logoFrontal = null; 
-let logoFondo = null;
-
-// Modelo/maniquí mujer tanamachi
-gltfLoader.load('/modelos/modelo_tanamachi.glb', (gltf) => {
-   console.log(" Modelo Tanamachi cargado correctamente:", gltf.scene);
-    modeloProtagonista = gltf.scene;
-    modeloProtagonista.position.set(-2.5, -2.7, -1); 
-    modeloProtagonista.scale.set(6.5, 6.5, 6.5); 
-    //sombras
-    modeloProtagonista.traverse((hijo) => {
-      if (hijo.isMesh) { hijo.castShadow = true; hijo.receiveShadow = true; }
+    const geometry = new THREE.PlaneGeometry(16 * scaleZ, 9 * scaleZ); 
+    const material = new THREE.MeshBasicMaterial({ 
+        map: texture, 
+        transparent: true,
+        depthWrite: false
     });
-    escena.add(modeloProtagonista);
-});
-
-// Logo del fondo, kangisss
-//materail de cromo
-const materialCromo = new THREE.MeshStandardMaterial({ map: texturaCromo, metalness: 1.0, roughness: 0.15, color: "#ffffff" });
-
-gltfLoader.load('/modelos/logo_centro.glb', (gltf) => {
-    console.log(" Logo del fondo cargado correctamente:", gltf.scene);
-    logoFondo = gltf.scene;
-    logoFondo.position.set(-2.5, 4.5, -6); 
-    logoFondo.scale.set(40, 40, 40); 
-    logoFondo.traverse((hijo) => { if (hijo.isMesh) hijo.material = materialCromo; });
-    escena.add(logoFondo);
-});
-
-// Logo letras tanamachi
-gltfLoader.load('/modelos/tana_letras.glb', (gltf) => {
-    console.log(" Logo letras tanamachi cargado correctamente:", gltf.scene);
-    logoFrontal = gltf.scene;
-    logoFrontal.position.set(-12, 12.5, 6.5); 
-    logoFrontal.scale.set(45, 45, 45); 
-    //material
-    logoFrontal.traverse((hijo) => { if (hijo.isMesh) hijo.material = materialPerillas; });
-    escena.add(logoFrontal);
-});
-
-// pelotas que van a flotar
-const grupoPelotas = new THREE.Group();
-escena.add(grupoPelotas);
-let pelotasActivas = false; 
-
-//no de pelotas, color y posición aleatoria
-for (let i = 0; i < 30; i++) {
-    const pelota = new THREE.Mesh(
-      new THREE.SphereGeometry(1, 32, 32), 
-      new THREE.MeshToonMaterial({ color: datosLineas[i % datosLineas.length].color })
-    );
-    // Escala y posición aleatoria
-    const escala = Math.random() * 0.8 + 0.2; 
-    pelota.scale.set(escala, escala, escala);
-    pelota.position.set((Math.random() * 20) - 12.5, (Math.random() * 12) - 1, (Math.random() * 10) - 7);
+    const plane = new THREE.Mesh(geometry, material);
+    plane.position.z = zDepth;
     
-    // dirección y velocidad random, rebote dentro
-    pelota.userData.velocidad = new THREE.Vector3((Math.random() - 0.5) * 0.15, (Math.random() - 0.5) * 0.15, (Math.random() - 0.5) * 0.15);
-    pelota.castShadow = true;
-    grupoPelotas.add(pelota);
+    plane.userData = { baseX: 0, baseY: 0, depthFactor: zDepth };
+    
+    scene.add(plane);
+    return plane;
 }
-grupoPelotas.visible = false;
 
-// Evento para activar las pelotas con tecla de espacio
-window.addEventListener('keydown', (evento) => {
-    if (evento.code === 'Space') {
-        pelotasActivas = !pelotasActivas; 
-        grupoPelotas.visible = pelotasActivas; 
-    }
+// 3. CAPAS DEL POSTER
+
+// FONDO
+const layerBackground = createLayer('/fondo1.png', -10, 1); 
+layerBackground.position.set(0, 0, -10); 
+layerBackground.userData = { baseX: 0, baseY: 0, depthFactor: -0.2 };
+
+// ESTRELLA AZUL 
+
+const layerStarblue = createLayer('/estrella_azul.png', -1, 1.5);
+layerStarblue.scale.set(1.5, 1.5, 1.5); 
+layerStarblue.position.set(-10, 3, -1); 
+layerStarblue.rotation.z = -0.15;
+layerStarblue.userData = { baseX: -10, baseY: 3, depthFactor: 1.5 };
+
+// ESTRELLA AZUL 2
+
+const layerStarblue2 = createLayer('/estrella_azul.png', -1, 1.5);
+layerStarblue2.scale.set(1.5, 1.5, 1.5 ); 
+layerStarblue2.position.set(-10, 3, -1); 
+layerStarblue2.rotation.z = -0.15;
+layerStarblue2.userData = { baseX: -10, baseY: 3, depthFactor: 1.5 };
+
+
+// PERSONA (YO)
+const layerPerson = createLayer('/jorg.png', 2, 1.5);
+layerPerson.scale.set(3.3, 3.3, 3.3); 
+layerPerson.position.set(1.5, 0.1, 2); 
+layerPerson.userData = { baseX: 1.5, baseY: -1, depthFactor: 3.0 }; 
+
+// TEXTO "YEAH!"
+const layerText = createLayer('/texto.png', 5, 1.2);
+layerText.scale.set(1.5, 1.5, 1.5); 
+layerText.position.set(-10, 2, 5);
+layerText.userData = { baseX: -10, baseY: 2, depthFactor: 5.0 };
+
+// TEXTO 2 "YEAH!"
+const layerText2 = createLayer('/texto.png', 6, 1.2); 
+layerText2.scale.set(1.5, 1.5, 1.5 ); 
+layerText2.position.set(11, -6, 6); 
+layerText2.userData = { baseX: 11, baseY: -6, depthFactor: 6.0 };
+
+
+// ESTRELLAS BLANCAS 
+
+const layerStars = createLayer('/estrella_blanca.png', 4, 1.5);
+layerStars.scale.set(0.3, 0.3, 1);
+layerStars.position.set(-2, 3, 4);
+layerStars.userData = { baseX: -2, baseY: 3, depthFactor: 3.5 };
+
+const layerStars2 = createLayer('/estrella_blanca.png', 5, 1.5);
+layerStars2.scale.set(0.25, 0.25, 1); 
+layerStars2.position.set(-4, -6, 5); 
+layerStars2.userData = { baseX: -4, baseY: -6, depthFactor: 4.5 };
+
+const layerStars3 = createLayer('/estrella_blanca.png', 4, 1.5);
+layerStars3.scale.set(0.2, 0.2, 1); 
+layerStars3.position.set(5, 5, 4); 
+layerStars3.userData = { baseX: 5, baseY: 5, depthFactor: 3.8 };
+
+const layerStars4 = createLayer('/estrella_blanca.png', 5, 1.5);
+layerStars4.scale.set(0.3, 0.3, 1); 
+layerStars4.position.set(3, -6, 5); 
+layerStars4.userData = { baseX: 3, baseY: -6, depthFactor: 4.2 };
+
+// 4. Mouse y Scroll
+let mouseX = 0;
+let mouseY = 0;
+let targetX = 0;
+let targetY = 0;
+
+const windowHalfX = window.innerWidth / 2;
+const windowHalfY = window.innerHeight / 2;
+
+document.addEventListener('mousemove', (event) => {
+    mouseX = (event.clientX - windowHalfX) / windowHalfX;
+    mouseY = (event.clientY - windowHalfY) / windowHalfY;
 });
 
-//detectar mouse hover y click en los botones interactivos
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-let objetoHovereado = null;
-
-
-window.addEventListener('mousemove', (event) => {
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+window.addEventListener('wheel', (event) => {
+    targetZoom += event.deltaY * 0.03;
+    targetZoom = THREE.MathUtils.clamp(targetZoom, 15, 45); 
 });
 
-// click en los botones interactivos y el logo del fondo
-window.addEventListener('click', () => {
-  console.log("Click detectado");
+// 5. Renderizado y Lerp
+const animatedLayers = [
+    layerBackground, layerStarblue, layerText, layerPerson, 
+    layerText2, layerStars, layerStars2, layerStars3, layerStars4
+];
 
-    raycaster.setFromCamera(mouse, camara);
+function animate() {
+    requestAnimationFrame(animate);
 
-    // click en el logo del fondo, recorrido de lado a lado
-    if (logoFondo && raycaster.intersectObject(logoFondo, true).length > 0) {
-        gsap.timeline({ overwrite: true })
-          .to(logoFondo.position, { x: 5, duration: 0.6, ease: "power1.inOut" }) 
-          .to(logoFondo.position, { x: -9, duration: 1.2, ease: "power1.inOut" }) 
-          .to(logoFondo.position, { x: -2.5, duration: 0.6, ease: "power1.inOut" }); 
-    }
+    targetX = mouseX * 4.0; 
+    targetY = mouseY * 4.0;
 
-    // click botonees inferiores; saltan, crecen un poco y dan una vuelta completa
-    if (objetoHovereado) {
-        gsap.to(objetoHovereado.position, { z: 8.5, duration: 0.4, yoyo: true, repeat: 1, ease: "back.out(3)", overwrite: true });
-        gsap.to(objetoHovereado.scale, { x: 2, y: 2, z: 2, duration: 0.4, yoyo: true, repeat: 1, ease: "back.out(3)", overwrite: true });
-        gsap.to(objetoHovereado.rotation, { x: objetoHovereado.rotation.x + (Math.PI * 2), z: objetoHovereado.rotation.z + (Math.PI * 2), duration: 0.8, ease: "elastic.out(1, 0.3)", overwrite: true });
-    }
-});
-
-// Animación y renderizado
-const reloj = new THREE.Clock(); 
-
-renderizador.setAnimationLoop(() => {
-    const tiempo = reloj.getElapsedTime();
-
-    // Rootación de maniqui
-    if (modeloProtagonista) modeloProtagonista.rotation.y += 0.005;
-
-    // Movimiento del logo frontal, sube y baja suavemente
-    if (logoFrontal) logoFrontal.position.y = 12.5 + Math.sin(tiempo * 4) * 0.3;
+    camera.position.x += (targetX - camera.position.x) * 0.05;
+    camera.position.y += (-targetY - camera.position.y) * 0.05;
     
-    // Movimiento de las pelotas, rebotan dentro de los límites imaginarios
-    if (pelotasActivas) {
-        grupoPelotas.children.forEach(pelota => {
-            pelota.position.add(pelota.userData.velocidad);
-            // Si chocan con los límites imaginarios que le pusimos, invertimos su velocidad para que reboten
-            if (pelota.position.x > 9 || pelota.position.x < -14) pelota.userData.velocidad.x *= -1;
-            if (pelota.position.y > 11 || pelota.position.y < -2) pelota.userData.velocidad.y *= -1;
-            if (pelota.position.z > 4 || pelota.position.z < -9) pelota.userData.velocidad.z *= -1;
-        });
-    }
+    camera.position.z += (targetZoom - camera.position.z) * 0.08;
 
-    // Raycaster para detectar hover sobre los botones interactivos
-    raycaster.setFromCamera(mouse, camara);
-    const intersecciones = raycaster.intersectObjects(objetosInteractivos);
+    // cover "fondo" 
+    const distToBackground = camera.position.z - layerBackground.position.z;
+    const vFov = (camera.fov * Math.PI) / 180;
+    const visibleHeight = 2 * Math.tan(vFov / 2) * distToBackground;
+    const visibleWidth = visibleHeight * camera.aspect;
 
-    if (intersecciones.length > 0) {
-        if (objetoHovereado !== intersecciones[0].object) {
-            // Si hay un objeto previamente hovereado, apagamos su luz de "hover"
-            if (objetoHovereado) objetoHovereado.material.emissive.setHex(0x000000);
-            
-            // luz de "hover" y cambio de cursor
-            objetoHovereado = intersecciones[0].object;
-            
-            // Como cambiamos algunos materiales, checamos si tienen propiedad emissive antes de prenderla
-            if(objetoHovereado.material.emissive) {
-                objetoHovereado.material.emissive.setHex(0x444444); 
-            }
-            document.body.style.cursor = 'pointer'; 
-        }
+    const margin = 12; 
+    
+    const scaleX = (visibleWidth + margin) / 16;
+    const scaleY = (visibleHeight + margin) / 9;
+
+    const bgScale = Math.max(scaleX, scaleY);
+    layerBackground.scale.set(bgScale, bgScale, 1);
+
+    animatedLayers.forEach(layer => {
+        const intensity = layer.userData.depthFactor * 0.5;
+        const destX = layer.userData.baseX + (targetX * intensity);
+        const destY = layer.userData.baseY + (targetY * intensity);
+        
+        layer.position.x += (destX - layer.position.x) * 0.08;
+        layer.position.y += (destY - layer.position.y) * 0.08;
+    });
+
+    camera.lookAt(scene.position);
+    renderer.render(scene, camera);
+}
+
+animate();
+
+// 6. Responsive Constante/ RENDER
+
+const COMPOSITION_ASPECT = 16 / 9;
+
+function updateCameraAspect() {
+    const windowAspect = window.innerWidth / window.innerHeight;
+    camera.aspect = windowAspect;
+    
+    if (windowAspect < COMPOSITION_ASPECT) {
+        camera.fov = baseFov * (COMPOSITION_ASPECT / windowAspect);
     } else {
-        // Si no hay intersecciones, se apaga la luz de "hover" y cambia el cursor a default
-        if (objetoHovereado) {
-            if(objetoHovereado.material.emissive) {
-                objetoHovereado.material.emissive.setHex(0x000000);
-            }
-            objetoHovereado = null;
-            document.body.style.cursor = 'default';
-        }
+        camera.fov = baseFov;
     }
     
-    //fps stats
-    stats.update();
+    camera.updateProjectionMatrix();
+}
 
-    // Actualización de controles y renderizado de la escena
-    controls.update(); 
-    renderizador.render(escena, camara);
+window.addEventListener('resize', () => {
+    updateCameraAspect();
+    renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+updateCameraAspect();
